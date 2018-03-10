@@ -24,6 +24,7 @@ use Git::SVN::Ra;
 use Git::SVN::Prompt;
 use Git::SVN::Log;
 use Git::SVN::Migration;
+use Git::SVN::Authors;
 
 use Git::SVN::Utils qw(
 	fatal
@@ -372,11 +373,8 @@ exit 1 if (!$rv && $cmd && $cmd ne 'log');
 usage(0) if $_help;
 version() if $_version;
 usage(1) unless defined $cmd;
-load_authors() if $_authors;
-if (defined $_authors_prog) {
-	my $abs_file = File::Spec->rel2abs($_authors_prog);
-	$_authors_prog = "'" . $abs_file . "'" if -x $abs_file;
-}
+Git::SVN::Authors::load_authors($cmd) if $_authors;
+Git::SVN::Authors::setup_authors_prog();
 
 unless ($cmd =~ /^(?:clone|init|multi-init|commit-diff)$/) {
 	Git::SVN::Migration::migration_check();
@@ -1930,23 +1928,6 @@ sub file_to_s {
 	close $fd or croak $!;
 	$ret =~ s/\s*$//s;
 	return $ret;
-}
-
-# '<svn username> = real-name <email address>' mapping based on git-svnimport:
-sub load_authors {
-	open my $authors, '<', $_authors or die "Can't open $_authors $!\n";
-	my $log = $cmd eq 'log';
-	while (<$authors>) {
-		chomp;
-		next unless /^(.+?|\(no author\))\s*=\s*(.+?)\s*<(.*)>\s*$/;
-		my ($user, $name, $email) = ($1, $2, $3);
-		if ($log) {
-			$Git::SVN::Log::rusers{"$name <$email>"} = $user;
-		} else {
-			$users{$user} = [$name, $email];
-		}
-	}
-	close $authors or croak $!;
 }
 
 # convert GetOpt::Long specs for use by git-config
