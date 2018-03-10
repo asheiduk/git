@@ -22,6 +22,9 @@ use Git qw(
     command_close_pipe
     get_tz_offset
 );
+use Git::SVN::Authors qw(
+	check_author
+);
 use Git::SVN::Utils qw(
 	fatal
 	can_compress
@@ -1471,37 +1474,6 @@ sub other_gs {
 		print STDERR "Initializing parent: $ref_id\n" unless $::_q > 1;
 	}
 	$gs
-}
-
-sub call_authors_prog {
-	my ($orig_author) = @_;
-	$orig_author = command_oneline('rev-parse', '--sq-quote', $orig_author);
-	my $author = `$::_authors_prog $orig_author`;
-	if ($? != 0) {
-		die "$::_authors_prog failed with exit code $?\n"
-	}
-	if ($author =~ /^\s*(.+?)\s*<(.*)>\s*$/) {
-		my ($name, $email) = ($1, $2);
-		return [$name, $email];
-	} else {
-		die "Author: $orig_author: $::_authors_prog returned "
-			. "invalid author format: $author\n";
-	}
-}
-
-sub check_author {
-	my ($author) = @_;
-	if (!defined $author || length $author == 0) {
-		$author = '(no author)';
-	}
-	if (!defined $::users{$author}) {
-		if (defined $::_authors_prog) {
-			$::users{$author} = call_authors_prog($author);
-		} elsif (defined $::_authors) {
-			die "Author: $author not defined in $::_authors file\n";
-		}
-	}
-	$author;
 }
 
 sub find_extra_svk_parents {
