@@ -7,11 +7,10 @@ use Git qw(command
            command_output_pipe
            command_close_pipe
            get_tz_offset);
-use Git::SVN::Authors;
 use POSIX qw/strftime/;
 use constant commit_log_separator => ('-' x 72) . "\n";
 use vars qw/$TZ $limit $color $pager $non_recursive $verbose $oneline
-            %rusers $show_commit $incremental/;
+            $show_commit $incremental/;
 
 # Option set in git-svn
 our $_git_format;
@@ -160,7 +159,7 @@ sub get_author_info {
 	$dest->{a_raw} = $author;
 	$dest->{t} = $t;
 	$dest->{tz} = $tz;
-	$dest->{a} = Git::SVN::Authors::reverse_map($author);
+	$dest->{a} = $::svn_authors->reverse_map($author);
 	$dest->{t_utc} = parse_git_date($t, $tz);
 }
 

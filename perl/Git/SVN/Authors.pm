@@ -10,78 +10,125 @@ use Git qw(
 	command_oneline
 );
 
-require Exporter;
+=head1 NAME
 
-our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(update_author_committer);
+GIT::SVN::Authors - mapping of author- and committer names in git-svn
 
+=head1 SYNOPSIS
+
+	use Git::SVN:Authors;
+	my $svn_authors = Git::SVN::Authors->new(
+		authors_file => ".svn-authors",
+		authors_prog => "",
+		use_log_author => 1
+	);
+
+	my $log_entry = {
+		author => "johndoe",
+		log => "commit some minor fixes
+
+From: Dr. Evil <evil@genius.example.com>
+	};
+	$svn_authors->update_author_committer(\%log_entry, $uuid);
+
+	my $svn_user = $svn_authors->reverse_map("John Doe <john.doe@example.com");
+
+
+=head1 DESCRIPTION
+
+This module encapsulates the mapping of author identifiers between Git
+and Subversion. Subversion commits only record a simple name (e.g.
+C<johndoe>) but Git uses Name/Email pairs and distinguishes between
+the "committer" and the "author" of a commit.
+
+Do not use it unless you are developing git-svn.  The interface will
+change as git-svn evolves.
+
+=cut
+
+sub new {
+	my ($class, %params) = @_;
+
+	my $self = bless {
+		authors_file => $params{authors_file},
+		authors_prog => $params{authors_prog},
+		use_log_author => $params{use_log_author},
+		users => { },
+		rusers => { }
+	}, $class;
+
+	$self->_load_authors_file;
+	$self->_setup_authors_prog;
+
+	return $self;
+}
 
 # '<svn username> = real-name <email address>' mapping based on git-svnimport:
-sub load_authors {
-	my $cmd = shift;
-
-	open my $authors, '<', $::_authors or die "Can't open $::_authors $!\n";
-	my $log = $cmd eq 'log';
+sub _load_authors_file {
+	my ($self) = @_;
+	my $authors_file = $self->{authors_file};
+	return unless $authors_file;
+	open my $authors, '<', $authors_file or die "Can't open $authors_file $!\n";
 	while (<$authors>) {
 		chomp;
 		next unless /^(.+?|\(no author\))\s*=\s*(.+?)\s*<(.*)>\s*$/;
 		my ($user, $name, $email) = ($1, $2, $3);
-		if ($log) {
-			$Git::SVN::Log::rusers{"$name <$email>"} = $user;
-		} else {
-			$::users{$user} = [$name, $email];
-		}
+		$self->{users}->{$user} = [$name, $email];
+		$self->{rusers}->{"$name <$email>"} = $user;
 	}
 	close $authors or croak $!;
 }
 
-sub setup_authors_prog {
-	if (defined $::_authors_prog) {
-		my $abs_file = File::Spec->rel2abs($::_authors_prog);
-		$::_authors_prog = "'" . $abs_file . "'" if -x $abs_file;
+sub _setup_authors_prog {
+	my ($self) = @_;
+	my $authors_prog = $self->{authors_prog};
+	if (defined $authors_prog) {
+		my $abs_file = File::Spec->rel2abs($authors_prog);
+		$self->{authors_prog} = "'" . $abs_file . "'" if -x $abs_file;
 	}
 }
 
-sub call_authors_prog {
-	my ($orig_author) = @_;
+sub _call_authors_prog {
+	my ($self, $orig_author) = @_;
+	my $authors_prog = $self->{authors_prog};
 	$orig_author = command_oneline('rev-parse', '--sq-quote', $orig_author);
-	my $author = `$::_authors_prog $orig_author`;
+	my $author = `$authors_prog $orig_author`;
 	if ($? != 0) {
-		die "$::_authors_prog failed with exit code $?\n"
+		die "$authors_prog failed with exit code $?\n"
 	}
 	if ($author =~ /^\s*(.+?)\s*<(.*)>\s*$/) {
 		my ($name, $email) = ($1, $2);
 		return [$name, $email];
 	} else {
-		die "Author: $orig_author: $::_authors_prog returned "
+		die "Author: $orig_author: $authors_prog returned "
 			. "invalid author format: $author\n";
 	}
 }
 
-sub check_author {
-	my ($author) = @_;
+sub _check_author {
+	my ($self, $author) = @_;
 	if (!defined $author || length $author == 0) {
 		$author = '(no author)';
 	}
-	if (!defined $::users{$author}) {
-		if (defined $::_authors_prog) {
-			$::users{$author} = call_authors_prog($author);
-		} elsif (defined $::_authors) {
-			die "Author: $author not defined in $::_authors file\n";
+	if (!defined $self->{users}->{$author}) {
+		if (defined $self->{authors_prog}) {
+			$self->{users}->{$author} = $self->_call_authors_prog($author);
+		} elsif (defined $self->{authors_file}) {
+			die "Author: $author not defined in $$self->{authors_file} file\n";
 		}
 	}
 	$author;
 }
 
 sub update_author_committer {
-	my ($log_entry, $uuid) = @_;
+	my ($self, $log_entry, $uuid) = @_;
 
-	my $author = $$log_entry{author} = check_author($$log_entry{author});
-	my ($name, $email) = defined $::users{$author} ? @{$::users{$author}}
+	my $author = $$log_entry{author} = $self->_check_author($$log_entry{author});
+	my ($name, $email) = defined $self->{users}->{$author} ? @{$self->{users}->{$author}}
 						       : ($author, undef);
 
 	my ($commit_name, $commit_email) = ($name, $email);
-	if ($Git::SVN::_use_log_author) {
+	if ($self->{use_log_author}) {
 		my $name_field;
 		if ($$log_entry{log} =~ /From:\s+(.*\S)\s*\n/i) {
 			$name_field = $1;
@@ -111,10 +158,10 @@ sub update_author_committer {
 }
 
 sub reverse_map {
-	my ($author) = @_;
+	my ($self, $author) = @_;
 	my $au;
-	if ($::_authors) {
-		$au = $Git::SVN::Log::rusers{$author} || undef;
+	if ($self->{authors_file}) {
+		$au = $self->{rusers}->{$author} || undef;
 	}
 	if (!$au) {
 		($au) = ($author =~ /<([^>]+)\@[^>]+>$/);

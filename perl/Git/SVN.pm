@@ -6,7 +6,7 @@ use constant rev_map_fmt => 'NH40';
 use vars qw/$_no_metadata
             $_repack $_repack_flags $_use_svm_props $_head
             $_use_svnsync_props $no_reuse_existing
-	    $_use_log_author $_add_author_from $_localtime/;
+	    $_add_author_from $_localtime/;
 use Carp qw/croak/;
 use File::Path qw/mkpath/;
 use IPC::Open3;
@@ -21,9 +21,6 @@ use Git qw(
     command_output_pipe
     command_close_pipe
     get_tz_offset
-);
-use Git::SVN::Authors qw(
-	update_author_committer
 );
 use Git::SVN::Utils qw(
 	fatal
@@ -1984,7 +1981,7 @@ sub make_log_entry {
 		$log_entry{metadata} = "$url\@$rev " . $uuid;
 	}
 
-	update_author_committer(\%log_entry, $uuid);
+	$::svn_authors->update_author_committer(\%log_entry, $uuid);
 
 	\%log_entry;
 }

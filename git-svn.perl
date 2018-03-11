@@ -6,7 +6,7 @@ use warnings;
 use strict;
 use vars qw/	$AUTHOR $VERSION
 		$sha1 $sha1_short $_revision $_repository
-		$_q $_authors $_authors_prog %users/;
+		$_q $svn_authors/;
 $AUTHOR = 'Eric Wong <normalperson@yhbt.net>';
 $VERSION = '@@GIT_VERSION@@';
 
@@ -113,7 +113,8 @@ my ($_stdin, $_help, $_edit,
 	$_before, $_after,
 	$_merge, $_strategy, $_preserve_merges, $_dry_run, $_parents, $_local,
 	$_prefix, $_no_checkout, $_url, $_verbose,
-	$_commit_url, $_tag, $_merge_info, $_interactive, $_set_svn_props);
+	$_commit_url, $_tag, $_merge_info, $_interactive, $_set_svn_props,
+	$_authors, $_authors_prog, $_use_log_author);
 
 # This is a refactoring artifact so Git::SVN can get at this git-svn switch.
 sub opt_prefix { return $_prefix || '' }
@@ -138,7 +139,7 @@ my %fc_opts = ( 'follow-parent|follow!' => \$Git::SVN::_follow_parent,
 		'quiet|q+' => \$_q,
 		'repack-flags|repack-args|repack-opts=s' =>
 		   \$Git::SVN::_repack_flags,
-		'use-log-author' => \$Git::SVN::_use_log_author,
+		'use-log-author' => \$_use_log_author,
 		'add-author-from' => \$Git::SVN::_add_author_from,
 		'localtime' => \$Git::SVN::_localtime,
 		%remote_opts );
@@ -373,8 +374,12 @@ exit 1 if (!$rv && $cmd && $cmd ne 'log');
 usage(0) if $_help;
 version() if $_version;
 usage(1) unless defined $cmd;
-Git::SVN::Authors::load_authors($cmd) if $_authors;
-Git::SVN::Authors::setup_authors_prog();
+
+$svn_authors = Git::SVN::Authors->new(
+	authors_file => $_authors,
+	authors_prog => $_authors_prog,
+	use_log_author => $_use_log_author,
+);
 
 unless ($cmd =~ /^(?:clone|init|multi-init|commit-diff)$/) {
 	Git::SVN::Migration::migration_check();
