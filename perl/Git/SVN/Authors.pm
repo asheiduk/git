@@ -13,7 +13,7 @@ use Git qw(
 require Exporter;
 
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(check_author);
+our @EXPORT_OK = qw(update_author_committer);
 
 
 # '<svn username> = real-name <email address>' mapping based on git-svnimport:
@@ -71,6 +71,43 @@ sub check_author {
 		}
 	}
 	$author;
+}
+
+sub update_author_committer {
+	my ($log_entry, $uuid) = @_;
+
+	my $author = $$log_entry{author} = check_author($$log_entry{author});
+	my ($name, $email) = defined $::users{$author} ? @{$::users{$author}}
+						       : ($author, undef);
+
+	my ($commit_name, $commit_email) = ($name, $email);
+	if ($Git::SVN::_use_log_author) {
+		my $name_field;
+		if ($$log_entry{log} =~ /From:\s+(.*\S)\s*\n/i) {
+			$name_field = $1;
+		} elsif ($$log_entry{log} =~ /Signed-off-by:\s+(.*\S)\s*\n/i) {
+			$name_field = $1;
+		}
+		if (!defined $name_field) {
+			if (!defined $email) {
+				$email = $name;
+			}
+		} elsif ($name_field =~ /(.*?)\s+<(.*)>/) {
+			($name, $email) = ($1, $2);
+		} elsif ($name_field =~ /(.*)@/) {
+			($name, $email) = ($1, $name_field);
+		} else {
+			($name, $email) = ($name_field, $name_field);
+		}
+	}
+
+	$email = "$author\@$uuid" unless defined $email;
+	$commit_email = "$author\@$uuid" unless defined $commit_email;
+
+	$$log_entry{name} = $name;
+	$$log_entry{email} = $email;
+	$$log_entry{commit_name} = $commit_name;
+	$$log_entry{commit_email} = $commit_email;
 }
 
 1;

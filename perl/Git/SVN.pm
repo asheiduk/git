@@ -23,7 +23,7 @@ use Git qw(
     get_tz_offset
 );
 use Git::SVN::Authors qw(
-	check_author
+	update_author_committer
 );
 use Git::SVN::Utils qw(
 	fatal
@@ -1941,30 +1941,8 @@ sub make_log_entry {
 
 	$log_entry{date} = parse_svn_date($log_entry{date});
 	$log_entry{log} .= "\n";
-	my $author = $log_entry{author} = check_author($log_entry{author});
-	my ($name, $email) = defined $::users{$author} ? @{$::users{$author}}
-						       : ($author, undef);
 
-	my ($commit_name, $commit_email) = ($name, $email);
-	if ($_use_log_author) {
-		my $name_field;
-		if ($log_entry{log} =~ /From:\s+(.*\S)\s*\n/i) {
-			$name_field = $1;
-		} elsif ($log_entry{log} =~ /Signed-off-by:\s+(.*\S)\s*\n/i) {
-			$name_field = $1;
-		}
-		if (!defined $name_field) {
-			if (!defined $email) {
-				$email = $name;
-			}
-		} elsif ($name_field =~ /(.*?)\s+<(.*)>/) {
-			($name, $email) = ($1, $2);
-		} elsif ($name_field =~ /(.*)@/) {
-			($name, $email) = ($1, $name_field);
-		} else {
-			($name, $email) = ($name_field, $name_field);
-		}
-	}
+	my $uuid;
 	if (defined $headrev && $self->use_svm_props) {
 		if ($self->rewrite_root) {
 			die "Can't have both 'useSvmProps' and 'rewriteRoot' ",
@@ -1974,7 +1952,8 @@ sub make_log_entry {
 			die "Can't have both 'useSvmProps' and 'rewriteUUID' ",
 			    "options set!\n";
 		}
-		my ($uuid, $r) = $headrev =~ m{^([a-f\d\-]{30,}):(\d+)$}i;
+		my $r;
+		($uuid, $r) = $headrev =~ m{^([a-f\d\-]{30,}):(\d+)$}i;
 		# we don't want "SVM: initializing mirror for junk" ...
 		return undef if $r == 0;
 		my $svm = $self->svm;
@@ -1991,29 +1970,22 @@ sub make_log_entry {
 		remove_username($full_url);
 		$log_entry{metadata} = "$full_url\@$r $uuid";
 		$log_entry{svm_revision} = $r;
-		$email = "$author\@$uuid" unless defined $email;
-		$commit_email = "$author\@$uuid" unless defined $commit_email;
 	} elsif ($self->use_svnsync_props) {
 		my $full_url = canonicalize_url(
 			add_path_to_url( $self->svnsync->{url}, $self->path )
 		);
 		remove_username($full_url);
-		my $uuid = $self->svnsync->{uuid};
+		$uuid = $self->svnsync->{uuid};
 		$log_entry{metadata} = "$full_url\@$rev $uuid";
-		$email = "$author\@$uuid" unless defined $email;
-		$commit_email = "$author\@$uuid" unless defined $commit_email;
 	} else {
 		my $url = $self->metadata_url;
 		remove_username($url);
-		my $uuid = $self->rewrite_uuid || $self->ra->get_uuid;
+		$uuid = $self->rewrite_uuid || $self->ra->get_uuid;
 		$log_entry{metadata} = "$url\@$rev " . $uuid;
-		$email = "$author\@$uuid" unless defined $email;
-		$commit_email = "$author\@$uuid" unless defined $commit_email;
 	}
-	$log_entry{name} = $name;
-	$log_entry{email} = $email;
-	$log_entry{commit_name} = $commit_name;
-	$log_entry{commit_email} = $commit_email;
+
+	update_author_committer(\%log_entry, $uuid);
+
 	\%log_entry;
 }
 
