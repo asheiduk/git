@@ -110,4 +110,16 @@ sub update_author_committer {
 	$$log_entry{commit_email} = $commit_email;
 }
 
+sub reverse_map {
+	my ($author) = @_;
+	my $au;
+	if ($::_authors) {
+		$au = $Git::SVN::Log::rusers{$author} || undef;
+	}
+	if (!$au) {
+		($au) = ($author =~ /<([^>]+)\@[^>]+>$/);
+	}
+	$au;
+}
+
 1;
