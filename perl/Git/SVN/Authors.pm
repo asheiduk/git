@@ -89,45 +89,57 @@ sub _setup_authors_prog {
 }
 
 sub _call_authors_prog {
-	my ($self, $orig_author) = @_;
+	my ($self, $svn_author) = @_;
 	my $authors_prog = $self->{authors_prog};
-	$orig_author = command_oneline('rev-parse', '--sq-quote', $orig_author);
-	my $author = `$authors_prog $orig_author`;
+	$svn_author = command_oneline('rev-parse', '--sq-quote', $svn_author);
+	my $reply = `$authors_prog $svn_author`;
 	if ($? != 0) {
 		die "$authors_prog failed with exit code $?\n"
 	}
-	if ($author =~ /^\s*(.+?)\s*<(.*)>\s*$/) {
+	if ($reply =~ /^\s*(.+?)\s*<(.*)>\s*$/) {
 		my ($name, $email) = ($1, $2);
 		return [$name, $email];
 	} else {
-		die "Author: $orig_author: $authors_prog returned "
-			. "invalid author format: $author\n";
+		die "Author: $svn_author: $authors_prog returned "
+			. "invalid author format: $reply\n";
 	}
 }
 
-sub _check_author {
-	my ($self, $author) = @_;
-	if (!defined $author || length $author == 0) {
-		$author = '(no author)';
+# Fetch user info either from the cache, the authors_prog.
+# Bail out if the info *should* be supplied but isn't,
+# return undef otherwise.
+sub _get_user {
+	my ($self, $svn_author) = @_;
+
+	# check cache hit
+	my $user = $self->{users}->{$svn_author};
+	return $user if defined $user;
+
+	# check authors_prog (if configured)
+	$user = $self->_call_authors_prog($svn_author) if length $self->{authors_prog};
+	if (defined $user) {
+		$self->{users}->{$svn_author} = $user;
+		return $user;
 	}
-	if (!defined $self->{users}->{$author}) {
-		if (defined $self->{authors_prog}) {
-			$self->{users}->{$author} = $self->_call_authors_prog($author);
-		} elsif (defined $self->{authors_file}) {
-			die "Author: $author not defined in $$self->{authors_file} file\n";
-		}
-	}
-	$author;
+
+	# bail out if neither source supplied something but should have done so
+	die "Author: $svn_author not defined in $self->{authors_file} file\n"
+		if length $self->{authors_file};
+
+	# fallback without authors_file and authors_prog
+	return;
 }
 
 sub update_author_committer {
 	my ($self, $log_entry, $uuid) = @_;
 
-	my $author = $$log_entry{author} = $self->_check_author($$log_entry{author});
-	my ($name, $email) = defined $self->{users}->{$author} ? @{$self->{users}->{$author}}
-						       : ($author, undef);
+	my $svn_author = $log_entry->{author};
+	$svn_author = '(no author)' unless length $svn_author;
 
-	my ($commit_name, $commit_email) = ($name, $email);
+	my $user = $self->_get_user($svn_author);
+	my ($commit_name, $commit_email) = defined $user ? @$user : ($svn_author, undef);
+
+	my ($author_name, $author_email) = ($commit_name, $commit_email);
 	if ($self->{use_log_author}) {
 		my $name_field;
 		if ($$log_entry{log} =~ /From:\s+(.*\S)\s*\n/i) {
@@ -136,23 +148,24 @@ sub update_author_committer {
 			$name_field = $1;
 		}
 		if (!defined $name_field) {
-			if (!defined $email) {
-				$email = $name;
+			if (!defined $author_email) {
+				$author_email = $author_name;
 			}
 		} elsif ($name_field =~ /(.*?)\s+<(.*)>/) {
-			($name, $email) = ($1, $2);
+			($author_name, $author_email) = ($1, $2);
 		} elsif ($name_field =~ /(.*)@/) {
-			($name, $email) = ($1, $name_field);
+			($author_name, $author_email) = ($1, $name_field);
 		} else {
-			($name, $email) = ($name_field, $name_field);
+			($author_name, $author_email) = ($name_field, $name_field);
 		}
 	}
 
-	$email = "$author\@$uuid" unless defined $email;
-	$commit_email = "$author\@$uuid" unless defined $commit_email;
+	$author_email = "$svn_author\@$uuid" unless defined $author_email;
+	$commit_email = "$svn_author\@$uuid" unless defined $commit_email;
 
-	$$log_entry{name} = $name;
-	$$log_entry{email} = $email;
+	$$log_entry{author} = $svn_author;
+	$$log_entry{name} = $author_name;
+	$$log_entry{email} = $author_email;
 	$$log_entry{commit_name} = $commit_name;
 	$$log_entry{commit_email} = $commit_email;
 }
