@@ -1,0 +1,25 @@
+TODO: Commit-message von Patch 2 (leere emails): += Dass author-file und -prog die volle Kontrolle
+über die erzeugten Namen haben sollen.
+
+
+# TODO: alter Fehler? Trotz "use-log-author" wird eine fehlende Email-Addresse vom Committer genommen.
+# TODO: alter Fehler? Bei "use-log-author" und kein Trailer, dann wird der Name zur Email.
+# TODO: alter Fehler? Bei "use-log-author" mit "From: foo" wird zu "foo <foo>" (prüfen! Zusammenhang mit oben?)
+
+# TODO: alter Fehler? if(defined $authors_prog)...    hoffentlich wurde der Leerstring vorher abgefangen? Dito $authors_file
+# TODO: alter Fehler? load_authors() if $_authors; --> es sollte kein File mit Namen "0" funktionieren.
+
+
+Historie von "make_log_entry"
+-----------------------------
+
+tig blame 29499c0b27~ -- git-svn.perl
+
+In 29499c0b27 wurde Git/SVN.pm aus git-svn.perl herausgezogen. Daher der blame auf den Parent.
+
+Interessante Commits für make_log_entry:
+
+3e18ce1ac3 ("git-svn: allow UUID to be manually remapped via rewriteUUID", 2010-01-23)
+abfa533dea ("git-svn: Same default as cvsimport when using --use-log-author", 2008-04-29)
+5ff6aae895 ("git-svn: expand handling of From: and Signed-off-by:", 2007-12-13)
+70ae04e4e8 ("git-svn: add support for pulling author from From: and Signed-off-by:", 2007-11-22)
