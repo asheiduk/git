@@ -4276,8 +4276,8 @@ no longer need to call `setup_pager()` directly).
 Nowadays, `git log` is a builtin, which means that it is _contained_ in the
 command `git`.  The source side of a builtin is
 
-- a function called `cmd_<bla>`, typically defined in `builtin/<bla.c>`
-  (note that older versions of Git used to have it in `builtin-<bla>.c`
+- a function called `cmd_<foo>`, typically defined in `builtin/<foo.c>`
+  (note that older versions of Git used to have it in `builtin-<foo>.c`
   instead), and declared in `builtin.h`.
 
 - an entry in the `commands[]` array in `git.c`, and

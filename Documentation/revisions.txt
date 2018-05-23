@@ -89,7 +89,7 @@ some output processing may assume ref names in UTF-8.
 '@{<n>}', e.g. '@\{1\}'::
   You can use the '@' construct with an empty ref part to get at a
   reflog entry of the current branch. For example, if you are on
-  branch 'blabla' then '@\{1\}' means the same as 'blabla@\{1\}'.
+  branch 'master' then '@\{1\}' means the same as 'master@\{1\}'.
 
 '@{-<n>}', e.g. '@{-1}'::
   The construct '@{-<n>}' means the <n>th branch/commit checked out
