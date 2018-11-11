@@ -19,58 +19,70 @@ linkgit:git-config[1]). Here are the details of the
 built-in formats:
 
 * 'oneline'
-
-	  <sha1> <title line>
++
+-------
+<sha1> <title line>
+-------
 +
 This is designed to be as compact as possible.
 
 * 'short'
++
+-------
+commit <sha1>
+Author: <author>
 
-	  commit <sha1>
-	  Author: <author>
-
-	      <title line>
+    <title line>
+-------
 
 * 'medium'
++
+-------
+commit <sha1>
+Author: <author>
+Date:   <author date>
 
-	  commit <sha1>
-	  Author: <author>
-	  Date:   <author date>
+    <title line>
 
-	      <title line>
-
-	      <full commit message>
+    <full commit message>
+-------
 
 * 'full'
++
+-------
+commit <sha1>
+Author: <author>
+Commit: <committer>
 
-	  commit <sha1>
-	  Author: <author>
-	  Commit: <committer>
+    <title line>
 
-	      <title line>
-
-	      <full commit message>
+    <full commit message>
+-------
 
 * 'fuller'
++
+-------
+commit <sha1>
+Author:     <author>
+AuthorDate: <author date>
+Commit:     <committer>
+CommitDate: <committer date>
 
-	  commit <sha1>
-	  Author:     <author>
-	  AuthorDate: <author date>
-	  Commit:     <committer>
-	  CommitDate: <committer date>
+    <title line>
 
-	       <title line>
-
-	       <full commit message>
+    <full commit message>
+-------
 
 * 'email'
++
+-------
+From <sha1> <date>
+From: <author>
+Date: <author date>
+Subject: [PATCH] <title line>
 
-	  From <sha1> <date>
-	  From: <author>
-	  Date: <author date>
-	  Subject: [PATCH] <title line>
-
-	  <full commit message>
+<full commit message>
+-------
 
 * 'raw'
 +
