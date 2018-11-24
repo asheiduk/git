@@ -62,7 +62,7 @@ color.diff.<slot>::
 	which part of the patch to use the specified color, and is one
 	of `context` (context text - `plain` is a historical synonym),
 	`meta` (metainformation), `frag`
-	(hunk header), 'func' (function in hunk header), `old` (removed lines),
+	(hunk header), `func` (function in hunk header), `old` (removed lines),
 	`new` (added lines), `commit` (commit headers), `whitespace`
 	(highlighting whitespace errors), `oldMoved` (deleted lines),
 	`newMoved` (added lines), `oldMovedDimmed`, `oldMovedAlternative`,
