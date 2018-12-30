@@ -200,6 +200,9 @@ config key: svn-remote.<name>.include-paths
 	values may be needed for 'clone'/'fetch' to complete in reasonable
 	time. But overly large values may lead to higher memory usage and
 	request timeouts.
++
+[verse]
+config key: svn.logwindowsize
 
 'clone'::
 	Runs 'init' and 'fetch'.  It will automatically create a
