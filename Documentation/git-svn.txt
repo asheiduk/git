@@ -950,7 +950,7 @@ compatibility with SVN (see the CAVEATS section below).
 
 HANDLING OF SVN BRANCHES
 ------------------------
-If 'git svn' is configured to fetch branches (and --follow-branches
+If 'git svn' is configured to fetch branches (and `--follow-parent`
 is in effect), it sometimes creates multiple Git branches for one
 SVN branch, where the additional branches have names of the form
 'branchname@nnn' (with nnn an SVN revision number).  These additional
