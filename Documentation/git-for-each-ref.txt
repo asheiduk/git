@@ -39,7 +39,12 @@ OPTIONS
 
 --sort=<key>::
 	A field name to sort on.  Prefix `-` to sort in
-	descending order of the value.  When unspecified,
+	descending order of the value.  Fields with numeric values sort
+	in numeric order (`objectsize`, `authordate`, `committerdate`,
+	`creatordate`, `taggerdate`).  Also supports `version:refname` or
+	`v:refname`.  The `version:refname` sort order can also be affected
+	by the `versionsort.suffix` configuration variable.  All other fields
+	are used to sort in their byte-value order.	 When unspecified,
 	`refname` is used.  You may use the --sort=<key> option
 	multiple times, in which case the last key becomes the primary
 	key.
@@ -240,14 +245,7 @@ with `trailers:only`. Whitespace-continuations can be removed from trailers so
 that each trailer appears on a line by itself with its full content with
 `trailers:unfold`. Both can be used together as `trailers:unfold,only`.
 
-For sorting purposes, fields with numeric values sort in numeric order
-(`objectsize`, `authordate`, `committerdate`, `creatordate`, `taggerdate`).
-All other fields are used to sort in their byte-value order.
-
-There is also an option to sort by versions, this can be done by using
-the fieldname `version:refname` or its alias `v:refname`.
-
-In any case, a field name that refers to a field inapplicable to
+A field name that refers to a field inapplicable to
 the object referred by the ref does not cause an error.  It
 returns an empty string instead.
 
