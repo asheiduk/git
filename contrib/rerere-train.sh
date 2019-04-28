@@ -96,7 +96,7 @@ done
 
 if test -z "$branch"
 then
-	git checkout "$original_HEAD"
+	git checkout -q "$original_HEAD"
 else
-	git checkout "${branch#refs/heads/}"
+	git checkout -q "${branch#refs/heads/}"
 fi
